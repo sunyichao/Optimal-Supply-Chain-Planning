@@ -229,6 +229,68 @@ def bar_graph(demand):
     plt.show()
 
 
+#=====================================================================================================
+# Function to determine optimal warehouse locations among all customer locations using Gurobi using LP
+# Arguments- 1. Numpy array of distances between customers
+#            2. List of annual demand of each customer (all products)
+#            3. Numpy array of distances between plants(rows) and customers(columns)
+#            4. Numpy array of demand of products (rows) by each customer (columns)
+#=====================================================================================================
+def location1(dist_cc,demand,dist_pc,prod_dem):
+    dist=copy.copy(dist_cc)
+    prod_dem=copy.copy(prod_dem)
+    #print(prod_dem)
+    net_demand=sum(demand)
+    dist1=copy.copy(dist_pc)        # 4x50 array of distance between plants and customers
+    dist1=np.vstack((dist1,dist1[3][:]))    #Duplicating last row to create an array of distances between each product's plant (rows) and customers (columns)
+    r=copy.copy(dist)
+    r[r<=500]=1         
+    r[r>500]=0
+
+    try:
+        #Creating a Gurobi model
+        model=Model("Location")
+
+        #Using dictionary's keys as reference indices for decision variables x
+        assignment={}
+        for i in np.arange(1,6):
+            for j in np.arange(1,51):
+                for k in np.arange(1,51):
+                    assignment[(i,j,k)]=dist[j-1][k-1]*0.2 + dist1[i-1][j-1]*0.2
+        warehouse={}
+        for j in np.arange(1,51):
+            warehouse[j]=
+            
+        
+        #Adding assignment and warehouse variables
+        x=model.addVars(assignment.keys(),lb=0,ub=GRB.INFINITY,obj=assignment,vtype=GRB.CONTINUOUS,name="x")
+        z=model.addVars(warehouse.keys(),lb=0,ub=1,obj=warehouse,vtype=GRB.BINARY,name='z')
+        
+
+        #Adding Constraints
+        model.addConstrs((quicksum(quicksum(x[i,j,k]*r[j-1][k-1] for i in [1,2,3,4,5]) for k in np.arange(1,51))>=0.8*quicksum(quicksum(x[i,j,k] for i in [1,2,3,4,5]) for k in np.arange(1,51)) for j in np.arange(1,51)),name="Demand1")
+        model.addConstrs((quicksum(x[i,j,k] for j in np.arange(1,51))>=prod_dem[i-1][k-1] for i in [1,2,3,4,5] for k in np.arange(1,51)),name="demand2")
+        model.addConstrs((z[j]>=(quicksum(quicksum(x[i,j,k] for i in [1,2,3,4,5]) for k in np.arange(1,51))/net_demand) for j in np.arange(1,51)),name='facility open')
+        model.addConstr((quicksum(z[j] for j in np.arange(1,51))<=4),name='max warehouse')
+        
+        model.optimize()
+
+        # Displaying non-zero decision variables
+        '''
+        for v in model.getVars():
+            if (v.x>0):
+                print('%s %g' % (v.varName, v.x))
+        '''
+        
+                
+    except GurobiError as e:
+        print('Error code ' + str(e.errno) + ": " + str(e))
+
+    except AttributeError as a:
+        print('Encountered an attribute error '+str(a))
+
+    return model
+    
 #==========================================================================================================
 # Function to determine optimal warehouse locations amnong all locations of customers using Gurobi using QP
 # Arguments- 1. Numpy array of distances between customers
@@ -317,68 +379,7 @@ def location(dist_cc,demand,dist_pc,prod_dem):
 
     return model
 
-#=====================================================================================================
-# Function to determine optimal warehouse locations among all customer locations using Gurobi using LP
-# Arguments- 1. Numpy array of distances between customers
-#            2. List of annual demand of each customer (all products)
-#            3. Numpy array of distances between plants(rows) and customers(columns)
-#            4. Numpy array of demand of products (rows) by each customer (columns)
-#=====================================================================================================
-def location1(dist_cc,demand,dist_pc,prod_dem):
-    dist=copy.copy(dist_cc)
-    prod_dem=copy.copy(prod_dem)
-    #print(prod_dem)
-    net_demand=sum(demand)
-    dist1=copy.copy(dist_pc)        # 4x50 array of distance between plants and customers
-    dist1=np.vstack((dist1,dist1[3][:]))    #Duplicating last row to create an array of distances between each product's plant (rows) and customers (columns)
-    r=copy.copy(dist)
-    r[r<=500]=1         
-    r[r>500]=0
 
-    try:
-        #Creating a Gurobi model
-        model=Model("Location")
-
-        #Using dictionary's keys as reference indices for decision variables x
-        assignment={}
-        for i in np.arange(1,6):
-            for j in np.arange(1,51):
-                for k in np.arange(1,51):
-                    assignment[(i,j,k)]=dist[j-1][k-1]*0.2 + dist1[i-1][j-1]*0.2
-        warehouse={}
-        for j in np.arange(1,51):
-            warehouse[j]=
-            
-        
-        #Adding assignment and warehouse variables
-        x=model.addVars(assignment.keys(),lb=0,ub=GRB.INFINITY,obj=assignment,vtype=GRB.CONTINUOUS,name="x")
-        z=model.addVars(warehouse.keys(),lb=0,ub=1,obj=warehouse,vtype=GRB.BINARY,name='z')
-        
-
-        #Adding Constraints
-        model.addConstrs((quicksum(quicksum(x[i,j,k]*r[j-1][k-1] for i in [1,2,3,4,5]) for k in np.arange(1,51))>=0.8*quicksum(quicksum(x[i,j,k] for i in [1,2,3,4,5]) for k in np.arange(1,51)) for j in np.arange(1,51)),name="Demand1")
-        model.addConstrs((quicksum(x[i,j,k] for j in np.arange(1,51))>=prod_dem[i-1][k-1] for i in [1,2,3,4,5] for k in np.arange(1,51)),name="demand2")
-        model.addConstrs((z[j]>=(quicksum(quicksum(x[i,j,k] for i in [1,2,3,4,5]) for k in np.arange(1,51))/net_demand) for j in np.arange(1,51)),name='facility open')
-        model.addConstr((quicksum(z[j] for j in np.arange(1,51))<=4),name='max warehouse')
-        
-        model.optimize()
-
-        # Displaying non-zero decision variables
-        '''
-        for v in model.getVars():
-            if (v.x>0):
-                print('%s %g' % (v.varName, v.x))
-        '''
-        
-                
-    except GurobiError as e:
-        print('Error code ' + str(e.errno) + ": " + str(e))
-
-    except AttributeError as a:
-        print('Encountered an attribute error '+str(a))
-
-    return model
-    
 #===================================================
 # Output result after optimization
 # Argument- Gurobi model returned after optimization
