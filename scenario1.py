@@ -290,6 +290,40 @@ def location1(dist_cc,demand,dist_pc,prod_dem):
         print('Encountered an attribute error '+str(a))
 
     return model
+
+#================================================================
+# Output result after LP optimization
+# Argument- Gurobi model returned by location1 after optimization
+#================================================================
+def result(m):
+    # Creating a dataframe of result
+    cols=['Customer ID','Product ID','Warehouse Location ID','Annual Supply']
+    arr=np.zeros((250,3),dtype=np.int)
+    for i in [1,2,3,4,5]:
+        for k in np.arange(1,51):
+            arr[(i-1)*50+k-1,0]=k
+            arr[(i-1)*50+k-1,1]=i
+    arr1=np.zeros((250,1),dtype=np.float16)
+    df_assignment=pd.DataFrame(np.concatenate((arr,arr1),axis=1),columns=cols)
+    df_assignment=df_assignment.set_index(['Customer ID','Product ID'])
+    df_assignment['Transportation Cost']=0
+    
+    for i in np.arange(1,6):
+        for j in np.arange(1,51):
+            for k in np.arange(1,51):
+                a=m.getVarByName("x["+str(i)+","+str(j)+","+str(k)+"]")
+                if a.X>0.1:
+                    df_assignment.at[(k,i),'Warehouse Location ID']=j
+                    df_assignment.at[(k,i),'Annual Supply']=a.X
+                    df_assignment.at[(k,i),'Transportation Cost']=a.X*a.Obj
+    df_assignment=df_assignment.reset_index()
+    df_assignment=df_assignment.rename(columns={'Warehouse Location ID':'ID'})
+    df_assignment=pd.merge(df_assignment,df_customers[['ID','City','State']],on='ID',how='left')
+    df_assignment=df_assignment.rename(columns={'ID':'Warehouse Location ID','City':'Warehouse City','State':'Warehouse State'})
+    df_assignment=df_assignment.set_index(['Customer ID','Product ID'])
+    df_assignment.to_csv('s1_new_assignment.csv')
+    return df_assignment
+
     
 #==========================================================================================================
 # Function to determine optimal warehouse locations amnong all locations of customers using Gurobi using QP
@@ -380,38 +414,6 @@ def location(dist_cc,demand,dist_pc,prod_dem):
     return model
 
 
-#===================================================
-# Output result after optimization
-# Argument- Gurobi model returned after optimization
-#===================================================
-def result(m):
-    # Creating a dataframe of result
-    cols=['Customer ID','Product ID','Warehouse Location ID','Annual Supply']
-    arr=np.zeros((250,3),dtype=np.int)
-    for i in [1,2,3,4,5]:
-        for k in np.arange(1,51):
-            arr[(i-1)*50+k-1,0]=k
-            arr[(i-1)*50+k-1,1]=i
-    arr1=np.zeros((250,1),dtype=np.float16)
-    df_assignment=pd.DataFrame(np.concatenate((arr,arr1),axis=1),columns=cols)
-    df_assignment=df_assignment.set_index(['Customer ID','Product ID'])
-    df_assignment['Transportation Cost']=0
-    
-    for i in np.arange(1,6):
-        for j in np.arange(1,51):
-            for k in np.arange(1,51):
-                a=m.getVarByName("x["+str(i)+","+str(j)+","+str(k)+"]")
-                if a.X>0.1:
-                    df_assignment.at[(k,i),'Warehouse Location ID']=j
-                    df_assignment.at[(k,i),'Annual Supply']=a.X
-                    df_assignment.at[(k,i),'Transportation Cost']=a.X*a.Obj
-    df_assignment=df_assignment.reset_index()
-    df_assignment=df_assignment.rename(columns={'Warehouse Location ID':'ID'})
-    df_assignment=pd.merge(df_assignment,df_customers[['ID','City','State']],on='ID',how='left')
-    df_assignment=df_assignment.rename(columns={'ID':'Warehouse Location ID','City':'Warehouse City','State':'Warehouse State'})
-    df_assignment=df_assignment.set_index(['Customer ID','Product ID'])
-    df_assignment.to_csv('s1_new_assignment.csv')
-    return df_assignment
 
 
 #===========================================================================
