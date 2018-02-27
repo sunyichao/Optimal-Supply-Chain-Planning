@@ -1,4 +1,4 @@
-''' SCENARIO 1 '''
+''' SCENARIO 1 OPTIMAL WAREHOUSE LOCATION '''
 
 import xlrd
 import pandas as pd
