@@ -259,7 +259,7 @@ def location1(dist_cc,demand,dist_pc,prod_dem):
                     assignment[(i,j,k)]=dist[j-1][k-1]*0.2 + dist1[i-1][j-1]*0.2
         warehouse={}
         for j in np.arange(1,51):
-            warehouse[j]=
+            warehouse[j]=0
             
         
         #Adding assignment and warehouse variables
