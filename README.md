@@ -1,7 +1,7 @@
 # Optimal-Supply-Chain-Planning
 CPLEX and Gurobi based LP and MIP models for network planning in supply chain
 
-NOTE: *This repository is solely for demonstration purpose. Data has not been provided due to copyright restrictions.*
+NOTE: *This repository is solely for demonstration purpose.*
 
 ## Problem Statement
 A company has 5 products and 4 plants. Each product is produced at only 1 plant except for product-4,5 which are produced at plant-4. The company serves 50 customers accross US, each having certain demand of each product.
